@@ -1,36 +1,47 @@
 #!/bin/bash
-readarray -t RESULTS < <(youtube-dl --default-search ytsearch5 "$(echo '' | dmenu -p 'YouTube Search:')" --get-title --get-id)
-TITLES=()
-URLS=()
-for i in "${!RESULTS[@]}"
-do
-    if [ $((i % 2)) -eq "0" ]
-    then
-        TITLES+=("${RESULTS[$i]}")
-    else
-        URLS+=("https://www.youtube.com/watch?v=""${RESULTS[$i]}")
-    fi
-done
-SELECTED=$(for i in "${TITLES[@]}";do echo "$i";done | dmenu -l 5)
-for i in "${!TITLES[@]}"; do
-   if [[ "${TITLES[$i]}" = "${SELECTED}" ]]; then
-       INDEX="${i}";
-   fi
-done
-LINK=${URLS[$INDEX]}
-echo $LINK
-YTFILE=$(mktemp -u /tmp/yt.XXXXXXXXXX)
-if [ -z "$LINK" ]
+if [ -z "$1" ]
 then
-    notify-send -t 2000 "No link supplied"
-    echo 'No link supplied'
+    sleep 0.5
+    INPUT=$(echo '' | dmenu -p 'YouTube Search:')
 else
-    notify-send -t 2000 "Downloading $LINK"
-    if youtube-dl -f bestvideo+bestaudio  -o "$YTFILE" "$LINK"
+    INPUT="$*"
+fi
+if [ -z "$INPUT" ]
+then
+    echo 'No input'
+else
+    readarray -t RESULTS < <(youtube-dl --default-search ytsearch5 "$INPUT" --get-title --get-id)
+    TITLES=('')
+    URLS=('')
+    for i in "${!RESULTS[@]}"
+    do
+        if [ $((i % 2)) -eq "0" ]
+        then
+            TITLES+=("${RESULTS[$i]}")
+        else
+            URLS+=("https://www.youtube.com/watch?v=""${RESULTS[$i]}")
+        fi
+    done
+    SELECTED=$(for i in "${TITLES[@]}";do echo "$i";done | dmenu -l 6)
+    for i in "${!TITLES[@]}"; do
+        if [[ "${TITLES[$i]}" = "${SELECTED}" ]]; then
+            INDEX="${i}";
+        fi
+    done
+    LINK=${URLS[$INDEX]}
+    YTFILE=$(mktemp -u /tmp/yt.XXXXXXXXXX)
+    if [ -z "$LINK" ]
     then
-        vlc --play-and-exit "$YTFILE".*
-        rm -v "$YTFILE".*
-    else notify-send -t 2000 --urgency critical "Failed, cleaning up"
-        ls -d /tmp/* | grep yt | xargs -d"\n" rm -v
+        notify-send -t 2000 "No input"
+        echo 'No input'
+    else
+        notify-send -t 2000 "Downloading $LINK"
+        if youtube-dl -f bestvideo+bestaudio  -o "$YTFILE" "$LINK"
+        then
+            vlc --play-and-exit "$YTFILE".*
+            rm -v "$YTFILE".*
+        else notify-send -t 2000 --urgency critical "Failed, cleaning up"
+            ls -d /tmp/* | grep yt | xargs -d"\n" rm -v
+        fi
     fi
 fi
