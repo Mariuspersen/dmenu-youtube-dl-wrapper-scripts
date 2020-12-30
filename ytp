@@ -1,0 +1,23 @@
+#!/bin/sh
+if [ -z "$1" ]
+then
+    sleep 0.5
+    LINK=$(echo '' |  dmenu -p 'Enter link:')
+else
+    LINK=$1
+fi
+YTFILE=$(mktemp -u /tmp/yt.XXXXXXXXXX)
+if [ -z "$LINK" ]
+then
+    notify-send -t 2000 "No link supplied"
+    echo 'No link supplied'
+else
+    notify-send -t 2000 "Downloading $LINK"
+    if youtube-dl -f bestvideo+bestaudio  -o "$YTFILE" "$LINK"
+    then
+        vlc --play-and-exit "$YTFILE".*
+        rm -v "$YTFILE".*
+    else notify-send -t 2000 --urgency critical "Failed, cleaning up"
+        ls -d /tmp/* | grep yt | xargs -d"\n" rm -v
+    fi
+fi
