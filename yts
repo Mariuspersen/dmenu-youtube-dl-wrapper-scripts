@@ -36,12 +36,24 @@ else
         echo 'No input'
     else
         notify-send -t 2000 "Downloading $LINK"
-        if youtube-dl -f bestvideo+bestaudio  -o "$YTFILE" "$LINK"
+        COUNT=0
+        SUCCSESS=true
+        while ! youtube-dl -f bestvideo+bestaudio  -o "$YTFILE" "$LINK"
+        do
+            COUNT=$((COUNT+1))
+            notify-send -t 2000 --urgency critical "($COUNT)Failed, trying again"
+            if [ $COUNT -ge 5 ]
+            then
+                notify-send -t 2000 --urgency critical "Failed $COUNT times, exiting and removing residue"
+                SUCCSESS=false
+                ls -d /tmp/* | grep yt | xargs -d"\n" rm -v
+                break;
+            fi
+        done
+        if [ "$SUCCSESS" = true ]
         then
             vlc --play-and-exit "$YTFILE".*
             rm -v "$YTFILE".*
-        else notify-send -t 2000 --urgency critical "Failed, cleaning up"
-            ls -d /tmp/* | grep yt | xargs -d"\n" rm -v
         fi
     fi
 fi
